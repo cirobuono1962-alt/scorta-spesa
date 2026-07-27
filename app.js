@@ -103,7 +103,7 @@ function allSupermarkets() {
 async function lookupOpenFoodFacts(barcode) {
   try {
     const res = await fetch(
-      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,product_name_it,generic_name,generic_name_it,brands,categories,quantity`
+      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,product_name_it,generic_name,generic_name_it,brands,categories,quantity,image_front_small_url,image_small_url`
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -114,6 +114,7 @@ async function lookupOpenFoodFacts(barcode) {
     const nome = [nomeBase, pr.brands ? `(${pr.brands.split(",")[0].trim()})` : ""].filter(Boolean).join(" ").trim();
     const descrizione = pr.generic_name_it || pr.generic_name || "";
     const categoria = pr.categories ? pr.categories.split(",").pop().trim() : "";
+    const immagine = pr.image_front_small_url || pr.image_small_url || null;
 
     let unita = "pz";
     const q = (pr.quantity || "").toLowerCase();
@@ -123,7 +124,7 @@ async function lookupOpenFoodFacts(barcode) {
     else if (/ml\b/.test(q)) unita = "ml";
 
     if (!nome) return null;
-    return { nome, descrizione, categoria, unita, barcode };
+    return { nome, descrizione, categoria, unita, barcode, immagine };
   } catch {
     return null;
   }
@@ -187,6 +188,9 @@ function productRow(p) {
   const best = bestPrice(p.id);
   return `
     <div class="product-item" id="row-${p.id}">
+      ${p.immagine
+        ? `<img src="${escapeHtml(p.immagine)}" alt="" style="width:44px;height:44px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff;flex-shrink:0;">`
+        : `<div style="width:44px;height:44px;border-radius:8px;background:var(--paper);border:1px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>`}
       <div class="info">
         <div class="name">${escapeHtml(p.nome)}</div>
         <div class="meta">${escapeHtml(p.categoria || "senza categoria")} · ${escapeHtml(p.unita || "pz")}${p.barcode ? ` · <span class="barcode-badge">${escapeHtml(p.barcode)}</span>` : ""}</div>
@@ -381,6 +385,7 @@ function openProductModal(prefill = {}) {
         <button class="close" id="close-x">✕</button>
         <h3>${prefill.fromScan ? "Prodotto trovato — controlla e salva" : "Nuovo prodotto"}</h3>
         ${prefill.fromScan ? `<p style="font-size:12px;color:var(--grocer);margin-top:2px;font-weight:600;">✓ Dati precompilati da Open Food Facts — correggi se serve</p>` : ""}
+        ${prefill.immagine ? `<img src="${escapeHtml(prefill.immagine)}" alt="" style="width:72px;height:72px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff;margin:6px 0 4px;">` : ""}
         <label class="field">Nome</label>
         <input type="text" id="f-nome" value="${escapeHtml(prefill.nome || "")}" placeholder="es. Pasta De Cecco 500g">
         <label class="field">Descrizione (opzionale)</label>
@@ -413,6 +418,7 @@ function openProductModal(prefill = {}) {
       barcode: document.getElementById("f-barcode").value.trim() || null,
       categoria: document.getElementById("f-categoria").value.trim() || null,
       unita: document.getElementById("f-unita").value,
+      immagine: prefill.immagine || null,
       createdAt: serverTimestamp(),
     };
     const ref = await addDoc(collection(db, "prodotti"), data);
@@ -583,6 +589,7 @@ function openProductDetail(id) {
     <div class="modal-backdrop" id="backdrop-d">
       <div class="modal modal-wrap">
         <button class="close" id="close-d">✕</button>
+        ${p.immagine ? `<img src="${escapeHtml(p.immagine)}" alt="" style="width:64px;height:64px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff;margin-bottom:6px;">` : ""}
         <h3>${escapeHtml(p.nome)}</h3>
         <div class="meta" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);margin-bottom:10px;">
           ${escapeHtml(p.categoria || "senza categoria")} · ${escapeHtml(p.unita || "pz")}
