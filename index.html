@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2E5339">
+<title>Scorta — Spesa &amp; Prezzi</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scorta">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --paper:#F5F3EE;
+    --paper-raised:#FFFFFF;
+    --ink:#1F1B16;
+    --ink-soft:#5B5548;
+    --grocer:#2E5339;
+    --grocer-dark:#203C29;
+    --stamp:#C1440E;
+    --line:#DEDACD;
+    --line-strong:#C7C2B2;
+    --gold:#B8863E;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:'Work Sans',sans-serif;}
+  body{
+    padding-bottom:84px;
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.035) 1px, transparent 0);
+    background-size:14px 14px;
+  }
+  .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+
+  header.top{
+    position:sticky;top:0;z-index:20;
+    background:var(--grocer);
+    color:var(--paper);
+    padding:16px 18px 14px;
+    box-shadow:0 2px 0 var(--grocer-dark);
+  }
+  header.top .brand{
+    display:flex;align-items:baseline;gap:8px;
+  }
+  header.top .brand .mark{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:11px;
+    letter-spacing:.14em;background:var(--stamp);color:#fff;padding:2px 6px;border-radius:3px;
+    transform:rotate(-3deg);display:inline-block;
+  }
+  header.top h1{margin:2px 0 0;font-size:22px;font-weight:800;letter-spacing:-0.01em;}
+  header.top .sub{font-size:12.5px;opacity:.82;margin-top:2px;font-family:'IBM Plex Mono',monospace;}
+
+  .perforation{
+    height:10px;
+    background-image: radial-gradient(circle at 8px 0, var(--paper) 5px, transparent 5.5px);
+    background-size: 16px 10px;
+    background-repeat: repeat-x;
+    background-color: var(--grocer);
+    margin-top:-1px;
+  }
+
+  main{max-width:640px;margin:0 auto;padding:16px 14px 8px;}
+
+  nav.tabs{
+    display:flex;gap:6px;margin:14px auto 18px;max-width:640px;padding:0 14px;
+  }
+  nav.tabs button{
+    flex:1;border:1px solid var(--line-strong);background:var(--paper-raised);
+    color:var(--ink-soft);padding:10px 4px;border-radius:10px;
+    font-family:'Work Sans',sans-serif;font-weight:600;font-size:12.5px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
+  }
+  nav.tabs button .ico{font-size:17px;}
+  nav.tabs button.active{
+    background:var(--ink);color:var(--paper);border-color:var(--ink);
+  }
+
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 14px;
+    margin-bottom:12px;
+  }
+  .section-title{
+    font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft);
+    font-weight:700;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;
+  }
+
+  .btn{
+    border:none;border-radius:9px;padding:11px 16px;font-weight:700;font-size:14px;
+    cursor:pointer;font-family:'Work Sans',sans-serif;display:inline-flex;align-items:center;gap:7px;justify-content:center;
+  }
+  .btn-primary{background:var(--grocer);color:#fff;}
+  .btn-primary:active{background:var(--grocer-dark);}
+  .btn-stamp{background:var(--stamp);color:#fff;}
+  .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line-strong);}
+  .btn-block{width:100%;}
+  .btn-sm{padding:7px 10px;font-size:12.5px;border-radius:7px;}
+  .btn:disabled{opacity:.4;cursor:default;}
+
+  input[type=text], input[type=number], select{
+    width:100%;padding:10px 11px;border:1px solid var(--line-strong);border-radius:8px;
+    font-size:15px;background:#fff;color:var(--ink);font-family:'Work Sans',sans-serif;
+  }
+  input[type=number]{font-family:'IBM Plex Mono',monospace;}
+  label.field{display:block;font-size:12px;color:var(--ink-soft);font-weight:600;margin:10px 0 4px;}
+  label.field:first-child{margin-top:0;}
+
+  .row-actions{display:flex;gap:8px;margin-top:12px;}
+
+  .fab{
+    position:fixed;right:18px;bottom:24px;z-index:30;
+    width:56px;height:56px;border-radius:50%;
+    background:var(--stamp);color:#fff;border:none;
+    font-size:26px;box-shadow:0 4px 14px rgba(0,0,0,.28);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+
+  .product-item{
+    display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);
+  }
+  .product-item:last-child{border-bottom:none;}
+  .product-item .info{flex:1;min-width:0;}
+  .product-item .name{font-weight:600;font-size:14.5px;}
+  .product-item .meta{font-size:11.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;margin-top:1px;}
+  .product-item .best{
+    font-size:11.5px;color:var(--grocer);font-weight:700;margin-top:3px;font-family:'IBM Plex Mono',monospace;
+  }
+  .chev{color:var(--line-strong);font-size:18px;}
+
+  .checkbox{
+    width:24px;height:24px;border-radius:6px;border:2px solid var(--line-strong);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#fff;
+  }
+  .checkbox.checked{background:var(--grocer);border-color:var(--grocer);color:#fff;font-weight:900;}
+
+  .qty-input{
+    width:52px;text-align:center;padding:6px 2px;font-size:14px;
+  }
+
+  table.compare{width:100%;border-collapse:collapse;font-size:13px;}
+  table.compare th{
+    text-align:left;font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;
+    letter-spacing:.06em;padding:4px 6px;border-bottom:1px solid var(--line-strong);
+  }
+  table.compare td{padding:8px 6px;border-bottom:1px solid var(--line);}
+  table.compare td.price{font-family:'IBM Plex Mono',monospace;text-align:right;}
+  table.compare td.price.best{color:var(--grocer);font-weight:700;background:#EAF1EB;border-radius:5px;}
+  table.compare tr:last-child td{border-bottom:none;}
+
+  .empty{
+    text-align:center;padding:30px 10px;color:var(--ink-soft);font-size:13.5px;
+  }
+  .empty .ico{font-size:30px;display:block;margin-bottom:8px;}
+
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(20,17,12,.55);z-index:50;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .modal{
+    background:var(--paper);width:100%;max-width:640px;border-radius:16px 16px 0 0;
+    padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+    max-height:88vh;overflow-y:auto;
+  }
+  .modal h3{margin:0 0 4px;font-size:17px;}
+  .modal .close{
+    position:absolute;right:14px;top:14px;background:none;border:none;font-size:20px;color:var(--ink-soft);cursor:pointer;
+  }
+  .modal-wrap{position:relative;}
+
+  #reader{width:100%;border-radius:10px;overflow:hidden;background:#000;}
+  #reader video{width:100%!important;}
+
+  .price-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .price-row:last-child{border-bottom:none;}
+  .price-row .sup{flex:1;font-size:13.5px;font-weight:600;}
+  .price-row .p{font-family:'IBM Plex Mono',monospace;font-size:14px;}
+  .price-row button{background:none;border:none;color:var(--stamp);font-size:13px;cursor:pointer;}
+
+  .summary-line{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;}
+  .summary-line.total{font-weight:700;border-top:1px dashed var(--line-strong);margin-top:6px;padding-top:8px;}
+  .summary-line .v{font-family:'IBM Plex Mono',monospace;}
+
+  .toast{
+    position:fixed;bottom:96px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:22px;
+    font-size:13px;z-index:60;box-shadow:0 4px 12px rgba(0,0,0,.25);
+  }
+
+  .setup-banner{
+    background:#FBEFE4;border:1px solid var(--gold);color:#6B4A17;
+    border-radius:10px;padding:12px 14px;font-size:12.5px;margin-bottom:14px;line-height:1.5;
+  }
+  .setup-banner strong{display:block;margin-bottom:3px;font-size:13px;}
+
+  .barcode-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;
+    color:var(--ink-soft);background:var(--paper);border:1px solid var(--line);
+    padding:1px 6px;border-radius:4px;display:inline-block;
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="mark">SCORTA</span></div>
+  <h1>La spesa di casa</h1>
+  <div class="sub" id="header-sub">— prodotti, prezzi, supermercati —</div>
+</header>
+<div class="perforation"></div>
+
+<main>
+  <div id="setup-banner"></div>
+  <div id="view"></div>
+</main>
+
+<nav class="tabs">
+  <button data-tab="prodotti" class="active"><span class="ico">📦</span>Prodotti</button>
+  <button data-tab="confronto"><span class="ico">📊</span>Confronto</button>
+  <button data-tab="spesa"><span class="ico">🧾</span>Lista spesa</button>
+</nav>
+
+<button class="fab" id="fab-add" title="Aggiungi prodotto">+</button>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<!-- ======================= FIREBASE CONFIG =======================
+Sostituisci i valori qui sotto con quelli del TUO progetto Firebase.
+Li trovi in: Console Firebase → Impostazioni progetto → Le tue app → SDK setup.
+================================================================== -->
+<script>
+  window.__FIREBASE_CONFIG__ = {
+    apiKey: "AIzaSyD5-RN-uKLvDz7xocD75r8ikFaPQZvOeBk",
+    authDomain: "scorta-spesa.firebaseapp.com",
+    projectId: "scorta-spesa",
+    storageBucket: "scorta-spesa.firebasestorage.app",
+    messagingSenderId: "203726298877",
+    appId: "1:203726298877:web:33c9542cdbf7a7742f2894"
+  };
+</script>
+
+<script type="module" src="app.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+</script>
+
+<!-- Librerie esterne: scanner barcode e generatore PDF -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+</body>
+</html>
