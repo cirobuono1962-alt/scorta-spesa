@@ -435,15 +435,24 @@ function openProductModal(prefill = {}) {
 }
 
 function openScanner() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
   modalRoot.innerHTML = `
     <div class="modal-backdrop" id="backdrop-scan">
       <div class="modal modal-wrap">
         <button class="close" id="close-scan">✕</button>
         <h3>Scansiona codice a barre</h3>
-        <p style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;">
-          Inquadra il codice orizzontale, a 10-15 cm, con buona luce
-        </p>
-        <div id="reader" style="margin-top:10px;"></div>
+
+        <button class="btn btn-primary btn-block" id="btn-photo-scan" style="margin-top:10px;">
+          📸 Scatta foto del codice a barre
+        </button>
+        ${isIOS ? `<p style="font-size:11.5px;color:var(--grocer);margin:5px 0 0;font-weight:600;">✓ Consigliato su iPhone — molto più affidabile della lettura dal vivo</p>` : ""}
+        <input type="file" accept="image/*" capture="environment" id="photo-input" style="display:none">
+
+        <div style="margin:16px 0 6px;text-align:center;font-size:11.5px;color:var(--ink-soft);">— oppure —</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 6px;text-align:center;">Inquadra il codice orizzontale, a 10-15 cm, con buona luce</p>
+        <div id="reader" style="margin-top:4px;"></div>
         <div id="scan-status" style="font-size:12px;color:var(--ink-soft);text-align:center;margin-top:8px;">Avvio fotocamera…</div>
 
         <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);">
@@ -504,6 +513,30 @@ function openScanner() {
     verbose: false,
   });
 
+  // --- Opzione 1 (consigliata su iPhone): scatta una foto e leggi il codice da lì ---
+  // La fotocamera nativa ha una messa a fuoco molto migliore del flusso video del browser.
+  document.getElementById("btn-photo-scan").addEventListener("click", () => {
+    document.getElementById("photo-input").click();
+  });
+  document.getElementById("photo-input").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (handled) return;
+    const st = document.getElementById("scan-status");
+    if (st) st.textContent = "Leggo il codice dalla foto…";
+    try {
+      stop();
+      const result = await scanner.scanFileV2(file, false);
+      const decodedText = typeof result === "string" ? result : result.decodedText;
+      handleCode(decodedText);
+    } catch (err) {
+      if (st) st.textContent = "";
+      toast("Non sono riuscito a leggere il codice dalla foto — riprova o scrivilo a mano");
+      e.target.value = ""; // permette di riprovare con la stessa foto/scelta
+    }
+  });
+
+  // --- Opzione 2: lettura dal vivo dalla fotocamera (più comoda su Android) ---
   scanner.start(
     { facingMode: "environment" },
     {
@@ -525,9 +558,13 @@ function openScanner() {
     const st = document.getElementById("scan-status");
     if (st) st.textContent = "Inquadra il codice a barre…";
   }).catch((e) => {
-    document.getElementById("scan-status").textContent = "";
-    modalRoot.querySelector("#reader").innerHTML =
-      `<div class="empty">Impossibile accedere alla fotocamera.<br>${escapeHtml(String(e))}<br><br>Puoi comunque scrivere il codice qui sotto.</div>`;
+    const st = document.getElementById("scan-status");
+    if (st) st.textContent = "";
+    const readerEl = modalRoot.querySelector("#reader");
+    if (readerEl) {
+      readerEl.innerHTML =
+        `<div class="empty">Fotocamera dal vivo non disponibile.<br>Usa "Scatta foto del codice" qui sopra.</div>`;
+    }
   });
 }
 
