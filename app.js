@@ -517,22 +517,37 @@ function openScanner() {
   // La fotocamera nativa ha una messa a fuoco molto migliore del flusso video del browser.
   // Il pulsante è un <label for="photo-input">: iOS apre la fotocamera in modo nativo,
   // senza bisogno di alcun trigger via JavaScript (più affidabile).
-  document.getElementById("photo-input").addEventListener("change", async (e) => {
+  // La lettura della foto usa Quagga2, una libreria specializzata nei codici a barre
+  // lineari (EAN/UPC/Code128...), molto più efficace di un motore pensato per i QR code.
+  document.getElementById("photo-input").addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     if (handled) return;
     const st = document.getElementById("scan-status");
     if (st) st.textContent = "Leggo il codice dalla foto…";
-    try {
-      stop();
-      const result = await scanner.scanFileV2(file, false);
-      const decodedText = typeof result === "string" ? result : result.decodedText;
-      handleCode(decodedText);
-    } catch (err) {
-      if (st) st.textContent = "";
-      toast("Non sono riuscito a leggere il codice dalla foto — riprova o scrivilo a mano");
-      e.target.value = ""; // permette di riprovare con la stessa foto/scelta
-    }
+    stop();
+
+    const imageUrl = URL.createObjectURL(file);
+    const decoderConfig = {
+      src: imageUrl,
+      numOfWorkers: 0,
+      locate: true,
+      inputStream: { size: 1600 },
+      decoder: {
+        readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader",
+                  "code_128_reader", "code_39_reader", "codabar_reader", "i2of5_reader"],
+      },
+    };
+    Quagga.decodeSingle(decoderConfig, (result) => {
+      URL.revokeObjectURL(imageUrl);
+      if (result && result.codeResult && result.codeResult.code) {
+        handleCode(result.codeResult.code);
+      } else {
+        if (st) st.textContent = "";
+        toast("Non sono riuscito a leggere il codice dalla foto — riprova, avvicinati un po' di più o scrivilo a mano");
+        e.target.value = ""; // permette di riprovare con una nuova foto
+      }
+    });
   });
 
   // --- Opzione 2: lettura dal vivo dalla fotocamera (più comoda su Android) ---
