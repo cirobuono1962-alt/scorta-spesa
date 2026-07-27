@@ -558,6 +558,7 @@ function openProductDetail(id) {
             <div class="price-row">
               <span class="sup">🏬 ${escapeHtml(pr.supermercato)}</span>
               <span class="p">${eur(pr.prezzo)}</span>
+              <button data-edit="${pr.id}" style="color:var(--grocer);">modifica</button>
               <button data-del="${pr.id}">elimina</button>
             </div>`).join("") : `<div class="empty" style="padding:10px 0;">Nessun prezzo ancora</div>`}
         </div>
@@ -587,6 +588,20 @@ function openProductDetail(id) {
       await deleteDoc(doc(db, "prezzi", btn.dataset.del));
       toast("Prezzo eliminato");
       openProductDetail(id);
+    });
+  });
+
+  modalRoot.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const pr = prices.find(x => x.id === btn.dataset.edit);
+      if (!pr) return;
+      const supEl = document.getElementById("f-sup");
+      const przEl = document.getElementById("f-prz");
+      supEl.value = pr.supermercato;
+      przEl.value = pr.prezzo;
+      przEl.focus();
+      przEl.select();
+      przEl.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   });
 
