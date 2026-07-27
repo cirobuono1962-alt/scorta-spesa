@@ -66,10 +66,18 @@
     margin-top:-1px;
   }
 
-  main{max-width:640px;margin:0 auto;padding:16px 14px 8px;}
+  main{max-width:640px;margin:0 auto;padding:0 14px 8px;}
+
+  .search-bar-wrap{
+    max-width:640px;margin:14px auto 0;padding:0 14px;
+  }
+  .search-bar-wrap input{
+    width:100%;padding:11px 12px;border:1px solid var(--line-strong);border-radius:10px;
+    font-size:15px;background:var(--paper-raised);color:var(--ink);font-family:'Work Sans',sans-serif;
+  }
 
   nav.tabs{
-    display:flex;gap:6px;margin:14px auto 18px;max-width:640px;padding:0 14px;
+    display:flex;gap:6px;margin:12px auto 16px;max-width:640px;padding:0 14px;
   }
   nav.tabs button{
     flex:1;border:1px solid var(--line-strong);background:var(--paper-raised);
@@ -217,16 +225,20 @@
 </header>
 <div class="perforation"></div>
 
-<main>
-  <div id="setup-banner"></div>
-  <div id="view"></div>
-</main>
+<div id="search-bar-wrap" class="search-bar-wrap">
+  <input type="text" id="search-box" placeholder="🔎 Cerca prodotto o categoria…">
+</div>
 
 <nav class="tabs">
   <button data-tab="prodotti" class="active"><span class="ico">📦</span>Prodotti</button>
   <button data-tab="confronto"><span class="ico">📊</span>Confronto</button>
   <button data-tab="spesa"><span class="ico">🧾</span>Lista spesa</button>
 </nav>
+
+<main>
+  <div id="setup-banner"></div>
+  <div id="view"></div>
+</main>
 
 <button class="fab" id="fab-add" title="Aggiungi prodotto">+</button>
 

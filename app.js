@@ -130,6 +130,9 @@ async function lookupOpenFoodFacts(barcode) {
 }
 
 // ---------- tab nav ----------
+const searchBarWrap = document.getElementById("search-bar-wrap");
+const searchBoxEl = document.getElementById("search-box");
+
 document.querySelectorAll("nav.tabs button").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
@@ -140,6 +143,11 @@ document.querySelectorAll("nav.tabs button").forEach(btn => {
 });
 document.getElementById("fab-add").addEventListener("click", () => openProductModal());
 
+searchBoxEl.addEventListener("input", (e) => {
+  state.search = e.target.value;
+  render();
+});
+
 // ============================================================
 // RENDER
 // ============================================================
@@ -147,6 +155,8 @@ function render() {
   headerSub.textContent = state.tab === "prodotti" ? `${state.products.length} prodotti in archivio`
     : state.tab === "confronto" ? "confronta i prezzi tra supermercati"
     : `${Object.values(state.cart).filter(q => q > 0).length} articoli in lista`;
+
+  searchBarWrap.style.display = state.tab === "prodotti" ? "" : "none";
 
   if (!isConfigured) { viewEl.innerHTML = ""; return; }
   if (!state.ready) { viewEl.innerHTML = `<div class="empty">Carico l'archivio…</div>`; return; }
@@ -163,20 +173,11 @@ function renderProdotti() {
     .sort((a, b) => a.nome.localeCompare(b.nome));
 
   viewEl.innerHTML = `
-    <div class="card">
-      <input type="text" id="search-box" placeholder="🔎 Cerca prodotto o categoria…" value="${escapeHtml(state.search)}">
-    </div>
     <div class="card" style="padding:6px 14px;">
       ${list.length ? list.map(p => productRow(p)).join("") :
         `<div class="empty"><span class="ico">🗒️</span>Nessun prodotto${q ? " trovato" : ", aggiungine uno con il tasto +"}</div>`}
     </div>
   `;
-  document.getElementById("search-box").addEventListener("input", (e) => {
-    state.search = e.target.value; render();
-    document.getElementById("search-box").focus();
-    const el = document.getElementById("search-box");
-    el.selectionStart = el.selectionEnd = el.value.length;
-  });
   list.forEach(p => {
     document.getElementById("row-" + p.id).addEventListener("click", () => openProductDetail(p.id));
   });
