@@ -214,6 +214,34 @@
     color:var(--ink-soft);background:var(--paper);border:1px solid var(--line);
     padding:1px 6px;border-radius:4px;display:inline-block;
   }
+  #print-area{display:none;}
+
+  @media print {
+    body.printing > *:not(#print-area){display:none !important;}
+    body.printing{background:#fff;padding:0;}
+    #print-area{display:block !important;}
+
+    .print-page{padding:10mm 4mm; page-break-after:always;}
+    .print-page:last-child{page-break-after:auto;}
+    .print-kicker{
+      font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;
+      color:#666;text-transform:uppercase;margin-bottom:6mm;
+    }
+    .print-market{font-family:'Work Sans',sans-serif;font-size:22px;font-weight:800;margin:0 0 3mm;color:#000;}
+    .print-page hr{border:none;border-top:1px solid #999;margin:0 0 6mm;}
+    .print-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .print-table th{
+      text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
+      color:#555;padding:2mm 1mm;border-bottom:1px solid #000;
+    }
+    .print-table td{padding:2.5mm 1mm;border-bottom:1px solid #ccc;font-family:'IBM Plex Mono',monospace;}
+    .print-table td:first-child{font-family:'Work Sans',sans-serif;}
+    .print-total{
+      margin-top:6mm;padding-top:4mm;border-top:2px solid #000;
+      font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;text-align:right;
+    }
+    .print-list{font-size:13px;line-height:2;padding-left:5mm;}
+  }
 </style>
 </head>
 <body>
@@ -241,6 +269,8 @@
 </main>
 
 <button class="fab" id="fab-add" title="Aggiungi prodotto">+</button>
+
+<div id="print-area"></div>
 
 <div id="modal-root"></div>
 <div id="toast-root"></div>
@@ -272,7 +302,6 @@ Li trovi in: Console Firebase → Impostazioni progetto → Le tue app → SDK s
 <!-- Librerie esterne: scanner barcode e generatore PDF -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 </body>
 </html>

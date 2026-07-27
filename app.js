@@ -262,7 +262,7 @@ function renderSpesa() {
         `<div class="summary-line total"><span>Totale spesa</span><span class="v">${eur(grandTotal)}</span></div>`
       }
       <div class="row-actions">
-        <button class="btn btn-stamp btn-block" id="btn-pdf" ${checkedIds.length === 0 ? "disabled" : ""}>🧾 Genera PDF per supermercato</button>
+        <button class="btn btn-stamp btn-block" id="btn-pdf" ${checkedIds.length === 0 ? "disabled" : ""}>🖨️ Stampa / Salva PDF per supermercato</button>
       </div>
       ${checkedIds.length ? `<div class="row-actions"><button class="btn btn-ghost btn-block" id="btn-clear">Svuota lista</button></div>` : ""}
     </div>
@@ -316,66 +316,57 @@ function spesaRow(p) {
 // PDF
 // ============================================================
 function generatePdf(perMarket, senzaPrezzo, grandTotal) {
-  const { jsPDF } = window.jspdf;
-  const docPdf = new jsPDF({ unit: "mm", format: "a4" });
   const markets = Object.keys(perMarket).sort();
-
   if (markets.length === 0) { toast("Nessun articolo con prezzo da mettere in lista"); return; }
 
+  const dateStr = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
+
+  let html = "";
   markets.forEach((m, idx) => {
-    if (idx > 0) docPdf.addPage();
-    let y = 20;
-    docPdf.setFont("courier", "bold"); docPdf.setFontSize(9);
-    docPdf.setTextColor(120); docPdf.text("SCORTA — LISTA DELLA SPESA", 14, y);
-    y += 8;
-    docPdf.setFont("helvetica", "bold"); docPdf.setFontSize(18);
-    docPdf.setTextColor(30); docPdf.text(m, 14, y);
-    y += 5;
-    docPdf.setDrawColor(200); docPdf.line(14, y, 196, y);
-    y += 8;
+    const rows = perMarket[m].items.map(item => `
+      <tr>
+        <td>${escapeHtml(item.nome)}</td>
+        <td class="num" style="text-align:right;">${item.qty} ${escapeHtml(item.unita || "")}</td>
+        <td class="num" style="text-align:right;">${eur(item.prezzo)}</td>
+        <td class="num" style="text-align:right;">${eur(item.prezzo * item.qty)}</td>
+      </tr>`).join("");
 
-    docPdf.setFont("courier", "bold"); docPdf.setFontSize(10); docPdf.setTextColor(90);
-    docPdf.text("PRODOTTO", 14, y);
-    docPdf.text("QTA", 130, y, { align: "right" });
-    docPdf.text("PREZZO", 160, y, { align: "right" });
-    docPdf.text("SUBTOT.", 196, y, { align: "right" });
-    y += 3;
-    docPdf.setDrawColor(220); docPdf.line(14, y, 196, y);
-    y += 6;
-
-    docPdf.setFont("helvetica", "normal"); docPdf.setFontSize(11); docPdf.setTextColor(30);
-    perMarket[m].items.forEach(item => {
-      if (y > 275) { docPdf.addPage(); y = 20; }
-      docPdf.text(item.nome, 14, y);
-      docPdf.setFont("courier", "normal");
-      docPdf.text(`${item.qty} ${item.unita || ""}`, 130, y, { align: "right" });
-      docPdf.text(eur(item.prezzo), 160, y, { align: "right" });
-      docPdf.text(eur(item.prezzo * item.qty), 196, y, { align: "right" });
-      docPdf.setFont("helvetica", "normal");
-      y += 7;
-    });
-
-    y += 3;
-    docPdf.setDrawColor(30); docPdf.setLineWidth(0.5); docPdf.line(120, y, 196, y);
-    y += 7;
-    docPdf.setFont("courier", "bold"); docPdf.setFontSize(13);
-    docPdf.text("TOTALE", 130, y, { align: "right" });
-    docPdf.text(eur(perMarket[m].totale), 196, y, { align: "right" });
+    html += `
+      <section class="print-page">
+        <div class="print-kicker">SCORTA — LISTA DELLA SPESA · ${dateStr}</div>
+        <h1 class="print-market">${escapeHtml(m)}</h1>
+        <hr>
+        <table class="print-table">
+          <thead><tr><th>Prodotto</th><th style="text-align:right;">Qtà</th><th style="text-align:right;">Prezzo</th><th style="text-align:right;">Subtot.</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="print-total">TOTALE&nbsp; ${eur(perMarket[m].totale)}</div>
+      </section>`;
   });
 
   if (senzaPrezzo.length) {
-    docPdf.addPage();
-    let y = 20;
-    docPdf.setFont("helvetica", "bold"); docPdf.setFontSize(14); docPdf.setTextColor(30);
-    docPdf.text("Articoli senza prezzo registrato", 14, y);
-    y += 10;
-    docPdf.setFont("helvetica", "normal"); docPdf.setFontSize(11);
-    senzaPrezzo.forEach(p => { docPdf.text("• " + p.nome, 14, y); y += 7; });
+    html += `
+      <section class="print-page">
+        <div class="print-kicker">SCORTA — LISTA DELLA SPESA · ${dateStr}</div>
+        <h1 class="print-market">Senza prezzo registrato</h1>
+        <hr>
+        <ul class="print-list">${senzaPrezzo.map(p => `<li>${escapeHtml(p.nome)}</li>`).join("")}</ul>
+      </section>`;
   }
 
-  const dateStr = new Date().toLocaleDateString("it-IT").replace(/\//g, "-");
-  docPdf.save(`spesa-${dateStr}.pdf`);
-  toast("PDF generato ✓");
+  const printArea = document.getElementById("print-area");
+  printArea.innerHTML = html;
+  document.body.classList.add("printing");
+  window.print();
+  // ripristina la normale visualizzazione dopo la stampa/anteprima
+  const cleanup = () => { document.body.classList.remove("printing"); printArea.innerHTML = ""; };
+  if (window.matchMedia) {
+    const mq = window.matchMedia("print");
+    const handler = (e) => { if (!e.matches) { cleanup(); mq.removeEventListener?.("change", handler); } };
+    mq.addEventListener?.("change", handler);
+  }
+  window.addEventListener("afterprint", cleanup, { once: true });
+  toast("Scegli \"Salva come PDF\" per condividerlo su WhatsApp, oppure stampalo");
 }
 
 // ============================================================
