@@ -444,11 +444,11 @@ function openScanner() {
         <button class="close" id="close-scan">✕</button>
         <h3>Scansiona codice a barre</h3>
 
-        <button class="btn btn-primary btn-block" id="btn-photo-scan" style="margin-top:10px;">
+        <label class="btn btn-primary btn-block" for="photo-input" style="margin-top:10px; cursor:pointer;">
           📸 Scatta foto del codice a barre
-        </button>
+        </label>
         ${isIOS ? `<p style="font-size:11.5px;color:var(--grocer);margin:5px 0 0;font-weight:600;">✓ Consigliato su iPhone — molto più affidabile della lettura dal vivo</p>` : ""}
-        <input type="file" accept="image/*" capture="environment" id="photo-input" style="display:none">
+        <input type="file" accept="image/*" capture="environment" id="photo-input" style="position:absolute; width:1px; height:1px; opacity:0; overflow:hidden;">
 
         <div style="margin:16px 0 6px;text-align:center;font-size:11.5px;color:var(--ink-soft);">— oppure —</div>
         <p style="font-size:12px;color:var(--ink-soft);margin:0 0 6px;text-align:center;">Inquadra il codice orizzontale, a 10-15 cm, con buona luce</p>
@@ -515,9 +515,8 @@ function openScanner() {
 
   // --- Opzione 1 (consigliata su iPhone): scatta una foto e leggi il codice da lì ---
   // La fotocamera nativa ha una messa a fuoco molto migliore del flusso video del browser.
-  document.getElementById("btn-photo-scan").addEventListener("click", () => {
-    document.getElementById("photo-input").click();
-  });
+  // Il pulsante è un <label for="photo-input">: iOS apre la fotocamera in modo nativo,
+  // senza bisogno di alcun trigger via JavaScript (più affidabile).
   document.getElementById("photo-input").addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
