@@ -339,8 +339,8 @@ function generatePdf(perMarket, senzaPrezzo, grandTotal) {
 
   const dateStr = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
 
-  let html = "";
-  markets.forEach((m, idx) => {
+  let body = "";
+  markets.forEach((m) => {
     const rows = perMarket[m].items.map(item => `
       <tr>
         <td>${escapeHtml(item.nome)}</td>
@@ -349,7 +349,7 @@ function generatePdf(perMarket, senzaPrezzo, grandTotal) {
         <td class="num" style="text-align:right;">${eur(item.prezzo * item.qty)}</td>
       </tr>`).join("");
 
-    html += `
+    body += `
       <section class="print-page">
         <div class="print-kicker">SCORTA — LISTA DELLA SPESA · ${dateStr}</div>
         <h1 class="print-market">${escapeHtml(m)}</h1>
@@ -363,7 +363,7 @@ function generatePdf(perMarket, senzaPrezzo, grandTotal) {
   });
 
   if (senzaPrezzo.length) {
-    html += `
+    body += `
       <section class="print-page">
         <div class="print-kicker">SCORTA — LISTA DELLA SPESA · ${dateStr}</div>
         <h1 class="print-market">Senza prezzo registrato</h1>
@@ -372,19 +372,50 @@ function generatePdf(perMarket, senzaPrezzo, grandTotal) {
       </section>`;
   }
 
-  const printArea = document.getElementById("print-area");
-  printArea.innerHTML = html;
-  document.body.classList.add("printing");
-  window.print();
-  // ripristina la normale visualizzazione dopo la stampa/anteprima
-  const cleanup = () => { document.body.classList.remove("printing"); printArea.innerHTML = ""; };
-  if (window.matchMedia) {
-    const mq = window.matchMedia("print");
-    const handler = (e) => { if (!e.matches) { cleanup(); mq.removeEventListener?.("change", handler); } };
-    mq.addEventListener?.("change", handler);
+  const fullHtml = `<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista della spesa — Scorta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{font-family:'Work Sans',sans-serif;color:#111;margin:0;padding:16px;background:#fff;}
+  .num{font-family:'IBM Plex Mono',monospace;}
+  .toolbar{display:flex;gap:10px;margin-bottom:18px;}
+  .toolbar button, .toolbar a{
+    flex:1;border:none;border-radius:9px;padding:13px;font-weight:700;font-size:15px;
+    font-family:'Work Sans',sans-serif;text-align:center;text-decoration:none;cursor:pointer;
   }
-  window.addEventListener("afterprint", cleanup, { once: true });
-  toast("Scegli \"Salva come PDF\" per condividerlo su WhatsApp, oppure stampalo");
+  .btn-print{background:#C1440E;color:#fff;}
+  .btn-back{background:#eee;color:#111;}
+  .print-page{padding:6mm 2mm 14mm;page-break-after:always;}
+  .print-page:last-child{page-break-after:auto;}
+  .print-kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;color:#666;text-transform:uppercase;margin-bottom:6mm;}
+  .print-market{font-size:24px;font-weight:800;margin:0 0 3mm;}
+  .print-page hr{border:none;border-top:1px solid #999;margin:0 0 6mm;}
+  .print-table{width:100%;border-collapse:collapse;font-size:14px;}
+  .print-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#555;padding:2mm 1mm;border-bottom:1px solid #000;}
+  .print-table td{padding:3mm 1mm;border-bottom:1px solid #ccc;}
+  .print-total{margin-top:6mm;padding-top:4mm;border-top:2px solid #000;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;text-align:right;}
+  .print-list{font-size:14px;line-height:2;padding-left:5mm;}
+  @media print { .toolbar{display:none;} }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="btn-print" onclick="window.print()">🖨️ Stampa o salva come PDF</button>
+    <a class="btn-back" href="${location.origin}${location.pathname}">← Torna a Scorta</a>
+  </div>
+  ${body}
+</body>
+</html>`;
+
+  // Navighiamo la scheda corrente sul documento di stampa (niente finestre separate:
+  // su Safari mobile due finestre aperte insieme possono creare ambiguità su cosa stampare).
+  window.location.href = "data:text/html;charset=utf-8," + encodeURIComponent(fullHtml);
 }
 
 // ============================================================
