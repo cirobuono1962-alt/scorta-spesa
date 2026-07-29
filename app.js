@@ -99,6 +99,13 @@ function allSupermarkets() {
   return [...new Set(state.prices.map(p => p.supermercato))].sort();
 }
 
+function matchesSearch(p, q) {
+  if (!q) return true;
+  return p.nome.toLowerCase().includes(q) ||
+    (p.categoria || "").toLowerCase().includes(q) ||
+    (p.descrizione || "").toLowerCase().includes(q);
+}
+
 // ---------- Open Food Facts: precompila i dati del prodotto dal codice a barre ----------
 async function lookupOpenFoodFacts(barcode) {
   try {
@@ -157,7 +164,7 @@ function render() {
     : state.tab === "confronto" ? "confronta i prezzi tra supermercati"
     : `${Object.values(state.cart).filter(q => q > 0).length} articoli in lista`;
 
-  searchBarWrap.style.display = state.tab === "prodotti" ? "" : "none";
+  searchBarWrap.style.display = "";
 
   if (!isConfigured) { viewEl.innerHTML = ""; return; }
   if (!state.ready) { viewEl.innerHTML = `<div class="empty">Carico l'archivio…</div>`; return; }
@@ -170,7 +177,7 @@ function render() {
 function renderProdotti() {
   const q = state.search.trim().toLowerCase();
   const list = state.products
-    .filter(p => !q || p.nome.toLowerCase().includes(q) || (p.categoria || "").toLowerCase().includes(q))
+    .filter(p => matchesSearch(p, q))
     .sort((a, b) => a.nome.localeCompare(b.nome));
 
   viewEl.innerHTML = `
@@ -202,6 +209,7 @@ function productRow(p) {
 
 function renderConfronto() {
   const markets = allSupermarkets();
+  const q = state.search.trim().toLowerCase();
   if (!state.products.length) {
     viewEl.innerHTML = `<div class="card"><div class="empty"><span class="ico">📊</span>Aggiungi prodotti e prezzi per vedere il confronto</div></div>`;
     return;
@@ -210,7 +218,12 @@ function renderConfronto() {
     viewEl.innerHTML = `<div class="card"><div class="empty"><span class="ico">📊</span>Nessun prezzo registrato ancora. Apri un prodotto per aggiungerne uno.</div></div>`;
     return;
   }
-  const rows = [...state.products].sort((a, b) => a.nome.localeCompare(b.nome)).map(p => {
+  const filtered = state.products.filter(p => matchesSearch(p, q));
+  if (!filtered.length) {
+    viewEl.innerHTML = `<div class="card"><div class="empty"><span class="ico">🔎</span>Nessun prodotto trovato</div></div>`;
+    return;
+  }
+  const rows = [...filtered].sort((a, b) => a.nome.localeCompare(b.nome)).map(p => {
     const pr = pricesFor(p.id);
     const min = pr.length ? Math.min(...pr.map(x => x.prezzo)) : null;
     const cells = markets.map(m => {
@@ -233,7 +246,8 @@ function renderConfronto() {
 }
 
 function renderSpesa() {
-  const list = [...state.products].sort((a, b) => a.nome.localeCompare(b.nome));
+  const q = state.search.trim().toLowerCase();
+  const list = state.products.filter(p => matchesSearch(p, q)).sort((a, b) => a.nome.localeCompare(b.nome));
   const checkedIds = Object.keys(state.cart).filter(id => state.cart[id] > 0);
 
   // calcolo assegnazione ottimale per supermercato
@@ -253,7 +267,7 @@ function renderSpesa() {
 
   viewEl.innerHTML = `
     <div class="card" style="padding:6px 14px;">
-      ${list.length ? list.map(p => spesaRow(p)).join("") : `<div class="empty">Nessun prodotto in archivio</div>`}
+      ${list.length ? list.map(p => spesaRow(p)).join("") : `<div class="empty">${q ? "Nessun prodotto trovato" : "Nessun prodotto in archivio"}</div>`}
     </div>
 
     <div class="card">
