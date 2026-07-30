@@ -373,14 +373,23 @@ function generatePdf(perMarket, senzaPrezzo, grandTotal) {
   }
 
   const printArea = document.getElementById("print-area");
-  printArea.innerHTML = body;
+  printArea.innerHTML = body; // eventuale contenuto di una stampa precedente viene sovrascritto qui
   document.body.classList.add("printing");
   const titoloOriginale = document.title;
   document.title = `Scorta — lista spesa ${dateStr}`;
+
+  // Su iPhone window.print() non blocca l'esecuzione: la finestra di stampa vera e propria
+  // arriva con un istante di ritardo. Ripristiniamo la vista normale solo quando il sistema
+  // ci conferma che la stampa è davvero terminata (evento afterprint), non subito dopo print().
+  const restore = () => {
+    document.title = titoloOriginale;
+    document.body.classList.remove("printing");
+  };
+  window.addEventListener("afterprint", restore, { once: true });
+  // rete di sicurezza nel caso il telefono non emetta mai "afterprint"
+  setTimeout(restore, 60000);
+
   window.print();
-  document.title = titoloOriginale;
-  document.body.classList.remove("printing");
-  printArea.innerHTML = "";
 }
 
 // ============================================================
