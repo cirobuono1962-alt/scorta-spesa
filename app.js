@@ -99,6 +99,42 @@ function allSupermarkets() {
   return [...new Set(state.prices.map(p => p.supermercato))].sort();
 }
 
+const CATEGORIE_BASE = [
+  "Frutta e verdura", "Carne e pesce", "Latticini e uova", "Freschi", "Surgelati",
+  "Dispensa", "Colazione", "Bevande", "Snack e dolci", "Pane e prodotti da forno",
+  "Igiene personale", "Igiene casa e pulizia", "Farmacia", "Bebè", "Animali", "Casa e altro",
+];
+function allCategorie() {
+  const usate = state.products.map(p => p.categoria).filter(Boolean);
+  return [...new Set([...CATEGORIE_BASE, ...usate])].sort();
+}
+
+function categorySelectHtml(selectId, newInputId, currentValue) {
+  const cats = allCategorie();
+  if (currentValue && !cats.includes(currentValue)) { cats.push(currentValue); cats.sort(); }
+  return `
+    <select id="${selectId}">
+      <option value="">— scegli una categoria —</option>
+      ${cats.map(c => `<option value="${escapeHtml(c)}" ${c === currentValue ? "selected" : ""}>${escapeHtml(c)}</option>`).join("")}
+      <option value="__new__">+ Nuova categoria…</option>
+    </select>
+    <input type="text" id="${newInputId}" placeholder="Nome della nuova categoria" style="display:none;margin-top:8px;">
+  `;
+}
+function wireCategorySelect(selectId, newInputId) {
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(newInputId);
+  sel.addEventListener("change", () => {
+    if (sel.value === "__new__") { inp.style.display = ""; inp.focus(); }
+    else { inp.style.display = "none"; }
+  });
+}
+function getCategoryValue(selectId, newInputId) {
+  const sel = document.getElementById(selectId);
+  if (sel.value === "__new__") return document.getElementById(newInputId).value.trim() || null;
+  return sel.value || null;
+}
+
 function matchesSearch(p, q) {
   if (!q) return true;
   return p.nome.toLowerCase().includes(q) ||
@@ -326,7 +362,7 @@ function spesaRow(p) {
         <div class="name">${escapeHtml(p.nome)}</div>
         <div class="meta">${best ? `${eur(best.prezzo)} · ${escapeHtml(best.supermercato)}` : "nessun prezzo"}</div>
       </div>
-      ${checked ? `<input type="number" min="1" class="qty-input" id="qty-${p.id}" value="${qty}">` : ""}
+      <input type="number" min="1" class="qty-input${checked ? "" : " qty-hidden"}" id="qty-${p.id}" value="${qty}" ${checked ? "" : "tabindex=\"-1\""}>
     </div>`;
 }
 
@@ -442,7 +478,7 @@ function openProductModal(prefill = {}) {
           <button class="btn btn-ghost btn-sm" id="btn-scan-inline">📷</button>
         </div>
         <label class="field">Categoria</label>
-        <input type="text" id="f-categoria" value="${escapeHtml(prefill.categoria || "")}" placeholder="es. Dispensa, Freschi, Casa…">
+        ${categorySelectHtml("f-categoria", "f-categoria-new", prefill.categoria || "")}
         <label class="field">Unità di misura</label>
         <select id="f-unita">
           ${["pz", "kg", "g", "lt", "ml"].map(u => `<option value="${u}" ${prefill.unita === u ? "selected" : ""}>${u}</option>`).join("")}
@@ -455,6 +491,7 @@ function openProductModal(prefill = {}) {
   document.getElementById("close-x").addEventListener("click", closeModal);
   document.getElementById("backdrop").addEventListener("click", (e) => { if (e.target.id === "backdrop") closeModal(); });
   document.getElementById("btn-scan-inline").addEventListener("click", () => openScanner());
+  wireCategorySelect("f-categoria", "f-categoria-new");
   document.getElementById("btn-save-product").addEventListener("click", async () => {
     const nome = document.getElementById("f-nome").value.trim();
     if (!nome) { toast("Inserisci il nome del prodotto"); return; }
@@ -462,7 +499,7 @@ function openProductModal(prefill = {}) {
       nome,
       descrizione: document.getElementById("f-descrizione").value.trim() || null,
       barcode: document.getElementById("f-barcode").value.trim() || null,
-      categoria: document.getElementById("f-categoria").value.trim() || null,
+      categoria: getCategoryValue("f-categoria", "f-categoria-new"),
       unita: document.getElementById("f-unita").value,
       immagine: prefill.immagine || null,
       createdAt: serverTimestamp(),
@@ -690,7 +727,7 @@ function openEditProduct(p) {
         <label class="field">Codice a barre</label>
         <input type="text" id="e-barcode" value="${escapeHtml(p.barcode || "")}">
         <label class="field">Categoria</label>
-        <input type="text" id="e-categoria" value="${escapeHtml(p.categoria || "")}">
+        ${categorySelectHtml("e-categoria", "e-categoria-new", p.categoria || "")}
         <label class="field">Unità di misura</label>
         <select id="e-unita">
           ${["pz", "kg", "g", "lt", "ml"].map(u => `<option value="${u}" ${p.unita === u ? "selected" : ""}>${u}</option>`).join("")}
@@ -702,12 +739,13 @@ function openEditProduct(p) {
     </div>`;
   document.getElementById("close-e").addEventListener("click", closeModal);
   document.getElementById("backdrop-e").addEventListener("click", (e) => { if (e.target.id === "backdrop-e") closeModal(); });
+  wireCategorySelect("e-categoria", "e-categoria-new");
   document.getElementById("btn-save-edit").addEventListener("click", async () => {
     await updateDoc(doc(db, "prodotti", p.id), {
       nome: document.getElementById("e-nome").value.trim(),
       descrizione: document.getElementById("e-descrizione").value.trim() || null,
       barcode: document.getElementById("e-barcode").value.trim() || null,
-      categoria: document.getElementById("e-categoria").value.trim() || null,
+      categoria: getCategoryValue("e-categoria", "e-categoria-new"),
       unita: document.getElementById("e-unita").value,
     });
     closeModal();
