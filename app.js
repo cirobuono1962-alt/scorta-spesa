@@ -280,7 +280,7 @@ function renderSpesa() {
         `<div class="summary-line total"><span>Totale spesa</span><span class="v">${eur(grandTotal)}</span></div>`
       }
       <div class="row-actions">
-        <button class="btn btn-stamp btn-block" id="btn-pdf" ${checkedIds.length === 0 ? "disabled" : ""}>🖨️ Stampa / Salva PDF per supermercato</button>
+        <button class="btn btn-stamp btn-block" id="btn-pdf" ${checkedIds.length === 0 ? "disabled" : ""}>📄 Genera PDF per supermercato</button>
       </div>
       ${checkedIds.length ? `<div class="row-actions"><button class="btn btn-ghost btn-block" id="btn-clear">Svuota lista</button></div>` : ""}
     </div>
@@ -337,59 +337,66 @@ function generatePdf(perMarket, senzaPrezzo, grandTotal) {
   const markets = Object.keys(perMarket).sort();
   if (markets.length === 0) { toast("Nessun articolo con prezzo da mettere in lista"); return; }
 
-  const dateStr = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const PAGE_W = 210, MARGIN = 16, RIGHT = PAGE_W - MARGIN;
 
-  let body = "";
-  markets.forEach((m) => {
-    const rows = perMarket[m].items.map(item => `
-      <tr>
-        <td>${escapeHtml(item.nome)}</td>
-        <td class="num" style="text-align:right;">${item.qty} ${escapeHtml(item.unita || "")}</td>
-        <td class="num" style="text-align:right;">${eur(item.prezzo)}</td>
-        <td class="num" style="text-align:right;">${eur(item.prezzo * item.qty)}</td>
-      </tr>`).join("");
+  markets.forEach((m, idx) => {
+    if (idx > 0) doc.addPage();
+    let y = 20;
 
-    body += `
-      <section class="print-page">
-        <div class="print-kicker">SCORTA — LISTA DELLA SPESA · ${dateStr}</div>
-        <h1 class="print-market">${escapeHtml(m)}</h1>
-        <hr>
-        <table class="print-table">
-          <thead><tr><th>Prodotto</th><th style="text-align:right;">Qtà</th><th style="text-align:right;">Prezzo</th><th style="text-align:right;">Subtot.</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <div class="print-total">TOTALE&nbsp; ${eur(perMarket[m].totale)}</div>
-      </section>`;
+    doc.setFont("courier", "normal"); doc.setFontSize(9); doc.setTextColor(130);
+    doc.text("SCORTA — LISTA DELLA SPESA", MARGIN, y);
+    y += 9;
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(20); doc.setTextColor(20);
+    doc.text(m, MARGIN, y);
+    y += 6;
+    doc.setDrawColor(180); doc.setLineWidth(0.3); doc.line(MARGIN, y, RIGHT, y);
+    y += 9;
+
+    doc.setFont("courier", "bold"); doc.setFontSize(9); doc.setTextColor(110);
+    doc.text("PRODOTTO", MARGIN, y);
+    doc.text("QTÀ", RIGHT - 55, y, { align: "right" });
+    doc.text("PREZZO", RIGHT - 28, y, { align: "right" });
+    doc.text("SUBTOT.", RIGHT, y, { align: "right" });
+    y += 3;
+    doc.setDrawColor(210); doc.line(MARGIN, y, RIGHT, y);
+    y += 7;
+
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(20);
+    perMarket[m].items.forEach(item => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(item.nome, MARGIN, y, { maxWidth: RIGHT - MARGIN - 60 });
+      doc.setFont("courier", "normal");
+      doc.text(`${item.qty} ${item.unita || ""}`, RIGHT - 55, y, { align: "right" });
+      doc.text(eur(item.prezzo), RIGHT - 28, y, { align: "right" });
+      doc.text(eur(item.prezzo * item.qty), RIGHT, y, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      y += 8;
+    });
+
+    y += 2;
+    doc.setDrawColor(20); doc.setLineWidth(0.5); doc.line(RIGHT - 60, y, RIGHT, y);
+    y += 8;
+    doc.setFont("courier", "bold"); doc.setFontSize(14);
+    doc.text("TOTALE", RIGHT - 28, y, { align: "right" });
+    doc.text(eur(perMarket[m].totale), RIGHT, y, { align: "right" });
   });
 
   if (senzaPrezzo.length) {
-    body += `
-      <section class="print-page">
-        <div class="print-kicker">SCORTA — LISTA DELLA SPESA · ${dateStr}</div>
-        <h1 class="print-market">Senza prezzo registrato</h1>
-        <hr>
-        <ul class="print-list">${senzaPrezzo.map(p => `<li>${escapeHtml(p.nome)}</li>`).join("")}</ul>
-      </section>`;
+    doc.addPage();
+    let y = 20;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(20);
+    doc.text("Articoli senza prezzo registrato", MARGIN, y);
+    y += 10;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+    senzaPrezzo.forEach(p => { doc.text("• " + p.nome, MARGIN, y); y += 7; });
   }
 
-  const printArea = document.getElementById("print-area");
-  printArea.innerHTML = body; // eventuale contenuto di una stampa precedente viene sovrascritto qui
-  document.body.classList.add("printing");
-  const titoloOriginale = document.title;
-  document.title = `Scorta — lista spesa ${dateStr}`;
-
-  // Su iPhone window.print() non blocca l'esecuzione: la finestra di stampa vera e propria
-  // arriva con un istante di ritardo. Ripristiniamo la vista normale solo quando il sistema
-  // ci conferma che la stampa è davvero terminata (evento afterprint), non subito dopo print().
-  const restore = () => {
-    document.title = titoloOriginale;
-    document.body.classList.remove("printing");
-  };
-  window.addEventListener("afterprint", restore, { once: true });
-  // rete di sicurezza nel caso il telefono non emetta mai "afterprint"
-  setTimeout(restore, 60000);
-
-  window.print();
+  const dateStr = new Date().toLocaleDateString("it-IT").replace(/\//g, "-");
+  doc.save(`scorta-lista-spesa-${dateStr}.pdf`);
+  toast("PDF salvato — condividilo su WhatsApp dall'app File o dai download");
 }
 
 // ============================================================
