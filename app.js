@@ -333,10 +333,14 @@ function spesaRow(p) {
 // ============================================================
 // PDF
 // ============================================================
-function generatePdf(perMarket, senzaPrezzo, grandTotal) {
+async function generatePdf(perMarket, senzaPrezzo, grandTotal) {
   const markets = Object.keys(perMarket).sort();
   if (markets.length === 0) { toast("Nessun articolo con prezzo da mettere in lista"); return; }
 
+  if (!window.jspdf) {
+    toast("La libreria PDF non si è caricata — controlla la connessione e ricarica la pagina");
+    return;
+  }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const PAGE_W = 210, MARGIN = 16, RIGHT = PAGE_W - MARGIN;
@@ -395,7 +399,23 @@ function generatePdf(perMarket, senzaPrezzo, grandTotal) {
   }
 
   const dateStr = new Date().toLocaleDateString("it-IT").replace(/\//g, "-");
-  doc.save(`scorta-lista-spesa-${dateStr}.pdf`);
+  const filename = `scorta-lista-spesa-${dateStr}.pdf`;
+
+  try {
+    const pdfBlob = doc.output("blob");
+    const file = new File([pdfBlob], filename, { type: "application/pdf" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "Lista della spesa — Scorta",
+        text: "Lista della spesa",
+      });
+      return;
+    }
+  } catch (e) {
+    // se l'utente annulla la condivisione o il telefono non la supporta, scarichiamo il file normalmente
+  }
+  doc.save(filename);
   toast("PDF salvato — condividilo su WhatsApp dall'app File o dai download");
 }
 
